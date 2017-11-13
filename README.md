@@ -1,4 +1,4 @@
-# Serverless REST API
+# Serverless REST API implementation of a Key/Value Service
 
 Implementation of a basic key/value service. Uses a RESTful API with AWS Lambda.
 DynamoDB is used to store the data.
