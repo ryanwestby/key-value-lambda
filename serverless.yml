@@ -1,0 +1,77 @@
+service: kv-lambda
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: dev
+  region: us-west-2
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - 'dynamodb:Query'
+        - 'dynamodb:Scan'
+        - 'dynamodb:GetItem'
+        - 'dynamodb:PutItem'
+        - 'dynamodb:UpdateItem'
+        - 'dynamodb:DeleteItem'
+      Resource:
+        - 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}'
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+
+functions:
+  list:
+    handler: handler.list
+    events:
+      - http:
+          path: v1/key
+          method: get
+          cors: true
+  get:
+    handler: handler.get
+    events:
+      - http:
+          path: v1/key/{key}
+          method: get
+          cors: true
+  create:
+    handler: handler.create
+    events:
+      - http:
+          path: v1/key
+          method: post
+          cors: true
+  update:
+    handler: handler.update
+    events:
+      - http:
+          path: v1/key/{key}
+          method: put
+          cors: true
+  delete:
+    handler: handler.delete
+    events:
+      - http:
+          path: v1/key/{key}
+          method: delete
+          cors: true
+
+resources:
+  Resources:
+    AppointmentsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+plugins:
+  - serverless-python-requirements
