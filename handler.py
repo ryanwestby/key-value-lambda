@@ -3,13 +3,14 @@ import json
 
 import boto3
 
-DYNAMODB_TABLE = os.environ['DYNAMODB_TABLE']
-dynamodb = boto3.resource('dynamodb')
+
+def get_dynamodb_conn():
+    return boto3.resource('dynamodb')
 
 
 def list(event, context):
-    table = dynamodb.Table(DYNAMODB_TABLE)
-
+    dynamodb = get_dynamodb_conn()
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
     result = table.scan()
 
     response = {
@@ -21,7 +22,8 @@ def list(event, context):
 
 
 def get(event, context):
-    table = dynamodb.Table(DYNAMODB_TABLE)
+    dynamodb = get_dynamodb_conn()
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
 
     result = table.get_item(
         Key={
@@ -29,24 +31,40 @@ def get(event, context):
         }
     )
 
-    response = {
-        "statusCode": 200,
-        "body": json.dumps(result['Item']['value'])
-    }
+    try:
+        value = json.dumps(result['Item']['value'])
+        response = {
+            "statusCode": 200,
+            "body": value
+        }
+    except KeyError:
+        response = {
+            "statusCode": 404,
+            "body": "Item not found"
+        }
 
     return response
 
 
+
 def create(event, context):
-    table = dynamodb.Table(DYNAMODB_TABLE)
-    data = json.loads(event['body'])
+    dynamodb = get_dynamodb_conn()
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
+    event_json = json.loads(event)
+    data = event_json['body']
 
     if 'key' not in data:
-        raise Exception("Couldn't create item, needs key.")
-        return
+        response = {
+            "statusCode": 404,
+            "body": "Couldn't create item, needs key."
+        }
+        return response
     if 'value' not in data:
-        raise Exception("Couldn't create item, needs value.")
-        return
+        response = {
+            "statusCode": 404,
+            "body": "Couldn't create item, needs value."
+        }
+        return response
 
     item = {
         'key': data['key'],
@@ -64,16 +82,21 @@ def create(event, context):
 
 
 def update(event, context):
+    dynamodb = get_dynamodb_conn()
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-    data = json.loads(event['body'])
+    event_json = json.loads(event)
+    data = event_json['body']
 
     if 'value' not in data:
-        raise Exception("Couldn't update the item.")
-        return
+        response = {
+            "statusCode": 404,
+            "body": "Couldn't update item, needs value."
+        }
+        return response
 
     result = table.update_item(
         Key={
-            'key': event['pathParameters']['key']
+            'key': event_json['pathParameters']['key']
         },
         ExpressionAttributeNames={
             '#value': 'value',
@@ -83,23 +106,30 @@ def update(event, context):
         },
         UpdateExpression='SET #value = :value',
         ReturnValues='ALL_NEW',
-
     )
 
-    response = {
-        "statusCode": 200,
-        "body": json.dumps(result['Attributes'])
-    }
+    if not result['Attributes']:
+        response = {
+            "statusCode": 404,
+            "body": "Key not found"
+        }
+    else:
+        response = {
+            "statusCode": 200,
+            "body": json.dumps(result['Attributes'])
+        }
 
     return response
 
 
 def delete(event, context):
+    dynamodb = get_dynamodb_conn()
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
+    event_json = json.loads(event)
 
     table.delete_item(
         Key={
-            'key': event['pathParameters']['key']
+            'key': event_json['pathParameters']['key']
         }
     )
 
