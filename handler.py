@@ -46,12 +46,10 @@ def get(event, context):
     return response
 
 
-
 def create(event, context):
     dynamodb = get_dynamodb_conn()
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-    event_json = json.loads(event)
-    data = event_json['body']
+    data = json.loads(event['body'])
 
     if 'key' not in data:
         response = {
@@ -84,8 +82,7 @@ def create(event, context):
 def update(event, context):
     dynamodb = get_dynamodb_conn()
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-    event_json = json.loads(event)
-    data = event_json['body']
+    data = json.loads(event['body'])
 
     if 'value' not in data:
         response = {
@@ -96,7 +93,7 @@ def update(event, context):
 
     result = table.update_item(
         Key={
-            'key': event_json['pathParameters']['key']
+            'key': event['pathParameters']['key']
         },
         ExpressionAttributeNames={
             '#value': 'value',
@@ -125,11 +122,10 @@ def update(event, context):
 def delete(event, context):
     dynamodb = get_dynamodb_conn()
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-    event_json = json.loads(event)
 
     table.delete_item(
         Key={
-            'key': event_json['pathParameters']['key']
+            'key': event['pathParameters']['key']
         }
     )
 

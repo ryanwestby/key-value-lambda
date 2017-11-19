@@ -55,8 +55,8 @@ def test_list(put_item):
             'key': 'sports'
         }
     }
-    handler.delete(json.dumps(event), None)
-    list_resp2 = handler.list(json.dumps(event), None)
+    handler.delete(event, None)
+    list_resp2 = handler.list(None, None)
     assert json.loads(list_resp2['body']) == []
 
 
@@ -83,73 +83,88 @@ def test_get_404(put_item):
 
 
 def test_create(dynamodb_fixture):
-    event = {
-        'body': {
+    body = {
             'key': 'sports',
             'value': 'baseball'
         }
+    event = {
+        'body': json.dumps(body)
     }
-    create_resp = handler.create(json.dumps(event), None)
-    assert json.loads(create_resp['body']) == event['body']
+    create_resp = handler.create(event, None)
+    assert create_resp['body'] == event['body']
 
     table = dynamodb_fixture.Table('TestTable')
     scan_resp = table.scan()
-    assert scan_resp['Items'][0] == event['body']
+    assert scan_resp['Items'][0] == body
 
     # Test list returns item after item is created
     list_resp = handler.list(None, None)
-    assert json.loads(list_resp['body'])[0] == event['body']
+    assert json.loads(list_resp['body'])[0] == body
 
 
 def test_create_404(dynamodb_fixture):
     # Test missing key
-    event = {
-        'body': {
+    body = {
             'value': 'baseball'
         }
+    event = {
+        'body': json.dumps(body)
     }
-    create_resp = handler.create(json.dumps(event), None)
+    create_resp = handler.create(event, None)
     assert create_resp['statusCode'] == 404
 
     # Test missing value
-    event = {
-        'body': {
+    body = {
             'key': 'sports'
         }
+    event = {
+        'body': json.dumps(body)
     }
-    create_resp = handler.create(json.dumps(event), None)
+    create_resp = handler.create(event, None)
     assert create_resp['statusCode'] == 404
 
 
 def test_update(put_item):
-    event = {
-        'body': {
+    body = {
             'value': 'football'
-        },
+        }
+    event = {
+        'body': json.dumps(body),
         'pathParameters': {
             'key': 'sports'
         }
     }
-    update_resp = handler.update(json.dumps(event), None)
-    json_resp = json.loads(update_resp['body'])
-    assert json_resp['key'] == put_item['key']
-    assert json_resp['value'] == event['body']['value']
+    json_update_resp = handler.update(event, None)
+    resp = json.loads(json_update_resp['body'])
+    assert resp['key'] == put_item['key']
+    assert resp['value'] == body['value']
 
 
 def test_update_404(put_item):
     # Test key that doesn't exist
+    body = {
+            'value': 'football'
+        }
     event = {
-        'body': {
-        },
+        'body': json.dumps(body),
         'pathParameters': {
             'key': 'games'
         }
     }
-    update_resp = handler.update(json.dumps(event), None)
+    update_resp = handler.update(event, None)
     assert update_resp['statusCode'] == 404
 
     # Test missing value
-
+    body = {
+        }
+    event = {
+        'body': json.dumps(body),
+        'pathParameters': {
+            'key': 'sports'
+        }
+    }
+    update_resp = handler.update(event, None)
+    assert update_resp['statusCode'] == 404
 
 
 def test_delete(dynamodb_fixture, put_item):
@@ -158,7 +173,7 @@ def test_delete(dynamodb_fixture, put_item):
             'key': 'sports'
         }
     }
-    delete_resp = handler.delete(json.dumps(event), None)
+    delete_resp = handler.delete(event, None)
     assert delete_resp['statusCode'] == 200
 
     # Key should not exist
