@@ -115,17 +115,14 @@ curl -X DELETE https://fj24zx740e.execute-api.us-west-2.amazonaws.com/dev/v1/key
 
 ## Testing
 
+Tests are written with `pytest` and `moto`
+
+Run them with `python tests.py`
+
+### Further Testing
+
 AWS Lambda allows configuration of test events in its Lambda service.
 
 Also, a Test Harness blueprint exists for AWS Lambda, but it currently only supports Node runtimes.
 This blueprint can probably be ported over to Python, which could be a fun but separate project.
 More info here: https://aws.amazon.com/blogs/compute/serverless-testing-with-aws-lambda/
-
-Serverless plugins also exist to run dynamodb locally and to emulate AWS Lambda and API Gateway locally,
-but the Serverless Offline plugin only supports Node for now.
-
-Nevertheless, a simple test suite exists in `tests.py`, for use after deployment.
-
-After deploying, replace the url in `tests.py` and run the tests with:
-`python tests.py`
-
